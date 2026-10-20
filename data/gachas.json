@@ -1,0 +1,6 @@
+[
+ {"id":"g1","name":"レバーガチャ","type":"lever","icon":"🎰","ready":true},
+ {"id":"g2","name":"ハンドルガチャ","type":"handle","icon":"🌀","ready":false,"rarityWeight":{"N":60,"R":25,"SR":12,"SSR":3}},
+ {"id":"g3","name":"連打ガチャ","type":"tap","icon":"👊","ready":false},
+ {"id":"g4","name":"宝箱ガチャ","type":"chest","icon":"🎁","ready":false,"rarityWeight":{"N":20,"R":30,"SR":35,"SSR":15}}
+]
