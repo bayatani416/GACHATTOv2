@@ -1,6 +1,7 @@
 {
- "N":  {"weight":40,"color":"#9aa7b4","level":0},
+ "N":  {"weight":38,"color":"#9aa7b4","level":0},
  "R":  {"weight":30,"color":"#4db3ff","level":1},
  "SR": {"weight":25,"color":"#c06bff","level":2},
- "SSR":{"weight":5, "color":"#ffcc00","level":3}
+ "SSR":{"weight":5, "color":"#ffcc00","level":3},
+ "UR": {"weight":2, "color":"#ff5ad9","level":4}
 }

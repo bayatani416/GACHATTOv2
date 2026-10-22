@@ -65,3 +65,12 @@ body[data-odd=A06]{background:#4a0010}
 .cutin{position:fixed;left:0;right:0;top:30%;z-index:70;background:linear-gradient(90deg,#c00,#f60);font-size:34px;font-weight:900;padding:18px;transform:skewY(-4deg);animation:cut 1s both}
 @keyframes cut{0%{transform:translateX(-110%) skewY(-4deg)}20%,80%{transform:translateX(0) skewY(-4deg)}100%{transform:translateX(110%) skewY(-4deg)}}
 @keyframes slide{0%{transform:translateX(-110%)}100%{transform:none}}
+/* 操作系（レバー・ハンドル） */
+.lever{width:44px;height:110px;right:-34px;top:35%;background:none;border-radius:0;touch-action:none;cursor:grab}
+.lever::before{content:"";position:absolute;left:16px;top:0;bottom:6px;width:12px;background:#ccc;border-radius:6px}
+.lever::after{left:6px;bottom:-14px;width:32px;height:32px}
+.handle{width:100px;height:100px;margin:12px auto 0;touch-action:none;cursor:grab;user-select:none}
+.hint{opacity:.85;margin:10px 0}
+body[data-odd=A01] .lever::before,body[data-odd=A01] .lever::after{background:#fc0}
+body[data-odd=A01] .handle{border-color:#fc0;background:#b8860b}
+body[data-odd=A01] .handle::after{background:#fc0}

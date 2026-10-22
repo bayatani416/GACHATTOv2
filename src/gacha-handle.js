@@ -4,8 +4,8 @@ export async function pullHandle(show, { lever: handle, stage }, calm) {
   stage.className = 'stage'; stage.innerHTML = '<div class="capsule" style="visibility:hidden"></div>';
   const cap = stage.firstChild;
   const paint = n => { const c = COLORS[n]; cap.classList.toggle('rb', c === 'rainbow'); cap.style.background = c === 'rainbow' ? '' : c; };
-  show.anomaly === 'A02' ? sfx.odd() : sfx.ratchet();
-  handle.classList.add('turn'); await sleep(1100); handle.classList.remove('turn');
+  if (show.anomaly === 'A02') sfx.odd();
+  await sleep(300);
   paint(show.lamps[0]); cap.style.visibility = 'visible'; cap.classList.add('drop'); sfx.capsule(); await sleep(900);
   for (let i = 1; i < 3; i++) {
     const n = show.lamps[i]; if (n === show.lamps[i - 1]) continue;

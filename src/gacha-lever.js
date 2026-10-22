@@ -3,8 +3,7 @@ import { sfx, flash, shake, sleep, COLORS, finale } from './effects.js';
 export async function pullLever(show, { lever, lamps, stage }, calm) {
   lamps.forEach(l => { l.style.background = ''; l.className = ''; });
   stage.className = 'stage'; stage.textContent = '❓';
-  show.anomaly === 'A02' ? sfx.odd() : sfx.pull();
-  lever.classList.add('pulled'); await sleep(450); lever.classList.remove('pulled');
+  show.anomaly === 'A02' ? sfx.odd() : sfx.pull(); await sleep(350);
   for (let i = 0; i < 3; i++) {
     await sleep(700);
     const n = show.lamps[i], c = COLORS[n];

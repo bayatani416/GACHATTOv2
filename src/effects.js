@@ -32,11 +32,13 @@ export const sfx = {
   don: () => { voice(140, 30, .6, { type: 'sine', vol: .5 }); noise(.4, .35, 300); },
   pico: () => { voice(1800, 1800, .06, { type: 'square', vol: .1, hp: 800 }); voice(2700, 2700, .14, { type: 'square', vol: .1, hp: 800, delay: .07 }); },
   fanfare: () => { [523, 659, 784, 1047].forEach((f, i) => voice(f, f, .3, { type: 'square', vol: .1, delay: i * .11, hp: 300 })); voice(2093, 2093, .5, { type: 'sine', vol: .1, delay: .45 }); },
+  tick: () => noise(.02, .3, 1500),
   ratchet: () => { for (let i = 0; i < 8; i++) noise(.02, .25, 1500, i * .13); },
   capsule: () => { voice(250, 650, .1, { type: 'sine', vol: .3 }); noise(.05, .2, 1000); },
   pop: () => { noise(.15, .3, 800); voice(600, 1200, .15, { type: 'triangle', vol: .2 }); },
 };
 // 0青 1緑 2赤 3金 4レインボー 5黒（黒は普通ありえない色）
+export const unlock = () => { try { A(); } catch {} };   // iPhone対策：最初のタッチで音を有効化
 export const COLORS = ['#4af', '#4d4', '#f44', '#fc0', 'rainbow', '#000'];
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 

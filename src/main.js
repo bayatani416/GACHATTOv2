@@ -3,6 +3,7 @@ import { draw } from './engine.js';
 import { sfx, flash } from './effects.js';
 import { pullLever } from './gacha-lever.js';
 import { pullHandle } from './gacha-handle.js';
+import { dragLever, spinHandle } from './input.js';
 
 const J = n => fetch(`data/${n}.json`).then(r => r.json());
 const [raw, rarities, gachas, cfg, odds] = await Promise.all(['characters', 'rarities', 'gachas', 'config', 'anomalies'].map(J));
@@ -27,32 +28,34 @@ const screens = {
     <label class="calm"><input type="checkbox" id="calm" ${S.calm ? 'checked' : ''}> 演出控えめモード（点滅・揺れを減らす）</label>`,
   gacha: id => { const g = gachas.find(x => x.id === id); return `<button class="back" data-go="home">← もどる</button>${head()}<h2>${g.icon} ${g.name}</h2>
     <div class="machine">${g.type === 'handle' ? '' : '<div class="lamps"><i></i><i></i><i></i></div>'}<div id="stage" class="stage">❓</div><div id="lever" class="${g.type === 'handle' ? 'handle' : 'lever'}"></div></div>
-    <button id="go" class="big">${g.type === 'handle' ? 'ハンドルを回す' : 'レバーを引く'}</button><div id="res"></div>`; },
+    <p id="hint" class="hint">${g.type === 'handle' ? '🌀 ハンドルを押さえたまま、ぐるっと1周まわそう' : '⬇️ レバーを下までぐーっと引こう'}</p><div id="res"></div>`; },
   zukan: () => `<button class="back" data-go="home">← もどる</button>${head()}<div class="dex">${live.map(c => { const k = S.owned[c.id];
     return `<button class="card" data-id="${c.id}" style="border-color:${rarities[c.rarity].color}"><small>No.${c.id}</small>${face(c, !!k)}<b>${k ? c.name : '？？？'}</b></button>`; }).join('')}</div>`,
   history: () => `<button class="back" data-go="home">← もどる</button><h2>履歴（最新${cfg.historyMax}件）</h2><div class="hist">${S.history.map(h => {
     const c = chars.find(x => x.id === h.id); return `<div>${fmt(h.t)}　${gname(h.g)}　${h.r}　${c.name}${h.n ? '　NEW' : ''}</div>`; }).join('') || '<p>まだ履歴がありません</p>'}</div>`,
 };
+let busy = false;
 const NUM = '①②③④⑤⑥⑦⑧⑨⑩';
 screens.odd = () => `<button class="back" data-go="home">← もどる</button><h2>違和感図鑑 ${Object.keys(S.odd).length}/${odds.length}</h2><p>いつもと違う演出が出たら…？</p><div class="hist">${odds.map((a, i) => { const o = S.odd[a.id];
   return `<div>${NUM[i]}　${o ? `<b>${a.name}</b><br>${o.count}回　初回 ${fmt(o.first)}` : '？？？'}</div>`; }).join('')}</div>`;
-const inits = { gacha: id => { const g = gachas.find(x => x.id === id); $.querySelector('#go').onclick = () => run(g); } };
+const inits = { gacha: id => { const g = gachas.find(x => x.id === id); busy = false; (g.type === 'handle' ? spinHandle : dragLever)($.querySelector('#lever'), () => run(g), () => !busy); } };
 function go(name, arg) { $.innerHTML = screens[name](arg); window.scrollTo(0, 0); inits[name]?.(arg); }
 
 async function run(g) {
-  const btn = $.querySelector('#go'); btn.disabled = true; $.querySelector('#res').innerHTML = '';
+  busy = true; $.querySelector('#res').innerHTML = ''; $.querySelector('#hint').textContent = '…';
   const before = stats().pct;
   const r = draw({ chars, rarities, gacha: g, owned: S.owned, pity: S.pity, cfg, odds });  // ① 抽選
   const a = odds.find(o => o.id === r.show.anomaly), first = a && !S.odd[a.id];
   record(S, g.id, r, cfg.historyMax);                                                 // ② 結果確定＋保存
   await playShow(g, r, a, first); // ③ 演出
   reveal(r, before);                                                                  // ④ 結果表示
-  btn.disabled = false; btn.textContent = 'もう1回 引く';
+  busy = false; const h = $.querySelector('#hint'); if (h) h.textContent = 'もう一度どうぞ！';
+  if (a) setTimeout(() => oddToast(a, first), 1500);   // 違和感の実績は、キャラが出てから
 }
 
 async function playShow(g, r, a, first) {
   document.body.dataset.odd = a?.id || '';                       // 違和感演出の見た目はCSSが担当
-  if (a) { setTimeout(() => oddToast(a, first), 800); if (a.id === 'A07') setTimeout(cutin, 1000); }
+  if (a?.id === 'A07') setTimeout(cutin, 1000);
   const els = { lever: $.querySelector('#lever'), lamps: [...$.querySelectorAll('.lamps i')], stage: $.querySelector('#stage') };
   await (g.type === 'handle' ? pullHandle : pullLever)(r.show, els, S.calm);
   delete document.body.dataset.odd;

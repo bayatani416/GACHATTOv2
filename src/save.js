@@ -1,5 +1,5 @@
 // セーブデータ（ブラウザ内に保存）。version は将来のデータ形式変更用。
-const KEY = 'zukan-save-v1';
+const KEY = 'zukan-save-v2';
 const blank = () => ({ version: 1, first: null, last: null, total: 0, byGacha: {}, ssr: 0, sr: 0, owned: {}, history: [], odd: {}, pity: 0, calm: false });
 export function load() { try { return { ...blank(), ...JSON.parse(localStorage.getItem(KEY)) }; } catch { return blank(); } }
 export function save(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
