@@ -1,18 +1,15 @@
-import { sfx, flash, shake, sleep, COLORS } from './effects.js';
-// レバー → ランプ3つが順に点灯（徐々に格上げ）→ 結果。show は抽選時に確定済み。
+import { sfx, flash, shake, sleep, COLORS, finale } from './effects.js';
+// レバー → ランプ3つが順に点灯 → 結果。ランプの色は抽選時に確定済みの show.lamps
 export async function pullLever(show, { lever, lamps, stage }, calm) {
   lamps.forEach(l => { l.style.background = ''; l.className = ''; });
   stage.className = 'stage'; stage.textContent = '❓';
-  sfx.pull(); lever.classList.add('pulled'); await sleep(450); lever.classList.remove('pulled');
-  const t = show.tier, cols = [Math.max(0, t - 2), Math.max(0, t - 1), t];
+  show.anomaly === 'A02' ? sfx.odd() : sfx.pull();
+  lever.classList.add('pulled'); await sleep(450); lever.classList.remove('pulled');
   for (let i = 0; i < 3; i++) {
     await sleep(700);
-    const c = COLORS[cols[i]];
-    if (c === 'rainbow') lamps[i].className = 'rb'; else { lamps[i].style.background = c; if (cols[i] >= 2) flash(c, calm); }
-    sfx.lamp(cols[i]);
+    const n = show.lamps[i], c = COLORS[n];
+    if (c === 'rainbow') lamps[i].className = 'rb'; else { lamps[i].style.background = c; if (n >= 2 && n < 4) flash(c, calm); }
+    sfx.lamp(n);
   }
-  await sleep(600);
-  if (t >= 2) sfx.kyuin();
-  if (show.confirm) { flash('rainbow', calm); shake(calm); sfx.don(); await sleep(1400); }   // レインボー＝確定
-  else if (t >= 3) { flash('#fc0', calm); sfx.don(); await sleep(900); }
+  await finale(show, calm);
 }

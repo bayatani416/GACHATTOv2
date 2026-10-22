@@ -2,9 +2,10 @@ import { load, save, record } from './save.js';
 import { draw } from './engine.js';
 import { sfx, flash } from './effects.js';
 import { pullLever } from './gacha-lever.js';
+import { pullHandle } from './gacha-handle.js';
 
 const J = n => fetch(`data/${n}.json`).then(r => r.json());
-const [raw, rarities, gachas, cfg] = await Promise.all(['characters', 'rarities', 'gachas', 'config'].map(J));
+const [raw, rarities, gachas, cfg, odds] = await Promise.all(['characters', 'rarities', 'gachas', 'config', 'anomalies'].map(J));
 // 省略された項目は自動で補完（キャラ追加は id/name/emoji/rarity/desc だけでOK）
 const chars = raw.map(c => ({ status: 'active', date: '2026-10-20', gachas: gachas.map(g => g.id), ...c }));
 const live = chars.filter(c => c.status === 'active');
@@ -22,29 +23,49 @@ const screens = {
   home: () => `${head()}<h1>図鑑ガチャ</h1><div class="grid2">${gachas.map(g => g.ready
     ? `<button class="gbtn" data-go="gacha" data-arg="${g.id}"><span>${g.icon}</span>${g.name}<small>未発見 あと${left(g)}体</small></button>`
     : `<div class="gbtn off"><span>${g.icon}</span>${g.name}<small>準備中</small></div>`).join('')}</div>
-    <button class="wide" data-go="zukan">📖 図鑑</button><button class="wide" data-go="history">🕘 履歴</button><div class="wide off">COMING SOON</div>
+    <button class="wide" data-go="zukan">📖 図鑑</button><button class="wide" data-go="history">🕘 履歴</button><button class="wide" data-go="odd">🔍 違和感図鑑 ${Object.keys(S.odd).length}/${odds.length}</button><div class="wide off">COMING SOON</div>
     <label class="calm"><input type="checkbox" id="calm" ${S.calm ? 'checked' : ''}> 演出控えめモード（点滅・揺れを減らす）</label>`,
   gacha: id => { const g = gachas.find(x => x.id === id); return `<button class="back" data-go="home">← もどる</button>${head()}<h2>${g.icon} ${g.name}</h2>
-    <div class="machine"><div class="lamps"><i></i><i></i><i></i></div><div id="stage" class="stage">❓</div><div id="lever" class="lever"></div></div>
-    <button id="go" class="big">レバーを引く</button><div id="res"></div>`; },
+    <div class="machine">${g.type === 'handle' ? '' : '<div class="lamps"><i></i><i></i><i></i></div>'}<div id="stage" class="stage">❓</div><div id="lever" class="${g.type === 'handle' ? 'handle' : 'lever'}"></div></div>
+    <button id="go" class="big">${g.type === 'handle' ? 'ハンドルを回す' : 'レバーを引く'}</button><div id="res"></div>`; },
   zukan: () => `<button class="back" data-go="home">← もどる</button>${head()}<div class="dex">${live.map(c => { const k = S.owned[c.id];
     return `<button class="card" data-id="${c.id}" style="border-color:${rarities[c.rarity].color}"><small>No.${c.id}</small>${face(c, !!k)}<b>${k ? c.name : '？？？'}</b></button>`; }).join('')}</div>`,
   history: () => `<button class="back" data-go="home">← もどる</button><h2>履歴（最新${cfg.historyMax}件）</h2><div class="hist">${S.history.map(h => {
     const c = chars.find(x => x.id === h.id); return `<div>${fmt(h.t)}　${gname(h.g)}　${h.r}　${c.name}${h.n ? '　NEW' : ''}</div>`; }).join('') || '<p>まだ履歴がありません</p>'}</div>`,
 };
+const NUM = '①②③④⑤⑥⑦⑧⑨⑩';
+screens.odd = () => `<button class="back" data-go="home">← もどる</button><h2>違和感図鑑 ${Object.keys(S.odd).length}/${odds.length}</h2><p>いつもと違う演出が出たら…？</p><div class="hist">${odds.map((a, i) => { const o = S.odd[a.id];
+  return `<div>${NUM[i]}　${o ? `<b>${a.name}</b><br>${o.count}回　初回 ${fmt(o.first)}` : '？？？'}</div>`; }).join('')}</div>`;
 const inits = { gacha: id => { const g = gachas.find(x => x.id === id); $.querySelector('#go').onclick = () => run(g); } };
 function go(name, arg) { $.innerHTML = screens[name](arg); window.scrollTo(0, 0); inits[name]?.(arg); }
 
 async function run(g) {
   const btn = $.querySelector('#go'); btn.disabled = true; $.querySelector('#res').innerHTML = '';
   const before = stats().pct;
-  const r = draw({ chars, rarities, gacha: g, owned: S.owned, pity: S.pity, cfg });  // ① 抽選
+  const r = draw({ chars, rarities, gacha: g, owned: S.owned, pity: S.pity, cfg, odds });  // ① 抽選
+  const a = odds.find(o => o.id === r.show.anomaly), first = a && !S.odd[a.id];
   record(S, g.id, r, cfg.historyMax);                                                 // ② 結果確定＋保存
-  await pullLever(r.show, { lever: $.querySelector('#lever'), lamps: [...$.querySelectorAll('.lamps i')], stage: $.querySelector('#stage') }, S.calm); // ③ 演出
+  await playShow(g, r, a, first); // ③ 演出
   reveal(r, before);                                                                  // ④ 結果表示
   btn.disabled = false; btn.textContent = 'もう1回 引く';
 }
 
+async function playShow(g, r, a, first) {
+  document.body.dataset.odd = a?.id || '';                       // 違和感演出の見た目はCSSが担当
+  if (a) { setTimeout(() => oddToast(a, first), 800); if (a.id === 'A07') setTimeout(cutin, 1000); }
+  const els = { lever: $.querySelector('#lever'), lamps: [...$.querySelectorAll('.lamps i')], stage: $.querySelector('#stage') };
+  await (g.type === 'handle' ? pullHandle : pullLever)(r.show, els, S.calm);
+  delete document.body.dataset.odd;
+}
+function oddToast(a, first) {   // 左上に実績カットイン
+  const d = document.createElement('div'); d.className = 'oddtoast';
+  d.innerHTML = `🔍 違和感演出${NUM[odds.indexOf(a)]} ${first ? '<b>NEW</b>' : ''}<br>${a.name}`;
+  document.body.append(d); sfx.pico(); setTimeout(() => d.remove(), 3200);
+}
+function cutin() {
+  const d = document.createElement('div'); d.className = 'cutin'; d.textContent = '🔥 激アツ！！ 🔥';
+  document.body.append(d); sfx.kyuin(); setTimeout(() => d.remove(), 1000);
+}
 function reveal(r, before) {
   const c = r.char, rar = rarities[c.rarity], o = S.owned[c.id], s = stats(), st = $.querySelector('#stage');
   st.innerHTML = face(c); st.classList.add('pop');
@@ -52,11 +73,11 @@ function reveal(r, before) {
   if (r.isNew) { sfx.fanfare(); flash('#fc0', S.calm); } else sfx.pico();
   $.querySelector('#res').innerHTML = `${r.isNew ? '<div class="new">NEW!</div>' : `<div class="dup">所持数 ×${o.count}</div>`}
     <div class="rar" style="color:${rar.color}">${c.rarity}</div><h3>No.${c.id} ${c.name}</h3><p>${c.desc}</p><p>図鑑 ${before}% → ${s.pct}%</p>`;
-  const m = cfg.milestones.find(m => before < m && s.pct >= m);
+  const m = cfg.milestones.filter(m => before < m && s.pct >= m).pop();
   if (m) setTimeout(() => banner(m), 1200);
 }
 function banner(m) {
-  const d = document.createElement('div'); d.className = 'banner'; d.textContent = m === 100 ? '図鑑 COMPLETE!!' : `図鑑 ${m}% 達成！`;
+  const d = document.createElement('div'); d.className = 'banner'; d.textContent = m === 100 ? '図鑑コンプリート！！' : `図鑑 ${m}% 達成！`;
   document.body.append(d); sfx.fanfare(); flash('rainbow', S.calm); setTimeout(() => d.remove(), 2600);
 }
 function detail(id) {
